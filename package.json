@@ -1,0 +1,33 @@
+{
+  "name": "surgiplan",
+  "private": true,
+  "packageManager": "pnpm@7.18.2",
+  "engines": {
+    "node": ">=18.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @surgiplan/shared build && pnpm -r --parallel --filter @surgiplan/api --filter @surgiplan/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,yml}\"",
+    "db:migrate": "pnpm --filter @surgiplan/api prisma:migrate",
+    "db:seed": "pnpm --filter @surgiplan/api prisma:seed"
+  },
+  "devDependencies": {
+    "prettier": "2.8.1",
+    "typescript": "4.9.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@mui/base": "5.0.0-alpha.112",
+      "@mui/system": "5.11.2",
+      "@mui/utils": "5.11.2",
+      "@mui/private-theming": "5.11.2",
+      "@mui/styled-engine": "5.11.0",
+      "@mui/types": "7.2.3",
+      "@mui/core-downloads-tracker": "5.11.2"
+    }
+  }
+}
