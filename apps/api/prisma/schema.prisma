@@ -1,0 +1,273 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id         String      @id @default(uuid()) @db.UniqueIdentifier
+  name       String      @unique @db.NVarChar(80)
+  users      User[]
+  procedures Procedure[]
+}
+
+model User {
+  id                 String    @id @default(uuid()) @db.UniqueIdentifier
+  email              String    @unique @db.NVarChar(256)
+  fullName           String    @db.NVarChar(120)
+  title              String?   @db.NVarChar(40)
+  phone              String?   @db.VarChar(20)
+  role               String    @db.VarChar(24)
+  branchId           String?   @db.UniqueIdentifier
+  supervisorId       String?   @db.UniqueIdentifier
+  passwordHash       String?   @db.VarChar(100)
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  theme              String    @default("light") @db.VarChar(10)
+  emailNotifications Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  branch           Branch?             @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  supervisor       User?               @relation("Supervision", fields: [supervisorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assistants       User[]              @relation("Supervision")
+  refreshTokens    RefreshToken[]
+  actionTokens     ActionToken[]
+  surgeriesAsLead  Surgery[]           @relation("SurgeryLead")
+  surgeriesAsAnest Surgery[]           @relation("SurgeryAnesthetist")
+  surgeriesCreated Surgery[]           @relation("SurgeryCreator")
+  teamMemberships  SurgeryTeamMember[]
+  unavailability   Unavailability[]
+  notifications    Notification[]
+  checklistMarks   ChecklistItem[]
+  surgeryEvents    SurgeryEvent[]
+  auditLogs        AuditLog[]
+
+  @@index([role])
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.UniqueIdentifier
+  userId     String    @db.UniqueIdentifier
+  familyId   String    @db.UniqueIdentifier
+  tokenHash  String    @unique @db.VarChar(64)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?   @db.NVarChar(200)
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model ActionToken {
+  id        String    @id @default(uuid()) @db.UniqueIdentifier
+  userId    String    @db.UniqueIdentifier
+  purpose   String    @db.VarChar(16)
+  tokenHash String    @unique @db.VarChar(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Room {
+  id              String    @id @default(uuid()) @db.UniqueIdentifier
+  code            String    @unique @db.VarChar(10)
+  name            String    @db.NVarChar(80)
+  floor           String?   @db.NVarChar(20)
+  turnoverMinutes Int       @default(30)
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  notes           String?   @db.NVarChar(400)
+  surgeries       Surgery[]
+}
+
+model Equipment {
+  id        String             @id @default(uuid()) @db.UniqueIdentifier
+  code      String             @unique @db.VarChar(20)
+  name      String             @db.NVarChar(100)
+  quantity  Int                @default(1)
+  isActive  Boolean            @default(true)
+  surgeries SurgeryEquipment[]
+}
+
+model Procedure {
+  id                     String    @id @default(uuid()) @db.UniqueIdentifier
+  code                   String    @unique @db.VarChar(20)
+  name                   String    @db.NVarChar(160)
+  branchId               String    @db.UniqueIdentifier
+  defaultDurationMinutes Int
+  isActive               Boolean   @default(true)
+  branch                 Branch    @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  surgeries              Surgery[]
+}
+
+model Patient {
+  id        String    @id @default(uuid()) @db.UniqueIdentifier
+  mrn       String    @unique @db.VarChar(20)
+  firstName String    @db.NVarChar(60)
+  lastName  String    @db.NVarChar(60)
+  birthDate DateTime  @db.Date
+  gender    String    @db.VarChar(1)
+  phone     String?   @db.VarChar(20)
+  allergies String?   @db.NVarChar(400)
+  createdAt DateTime  @default(now())
+  surgeries Surgery[]
+
+  @@index([lastName, firstName])
+}
+
+model Surgery {
+  id                String    @id @default(uuid()) @db.UniqueIdentifier
+  number            Int       @unique @default(autoincrement())
+  patientId         String    @db.UniqueIdentifier
+  procedureId       String    @db.UniqueIdentifier
+  roomId            String?   @db.UniqueIdentifier
+  surgeonId         String    @db.UniqueIdentifier
+  anesthetistId     String?   @db.UniqueIdentifier
+  createdById       String    @db.UniqueIdentifier
+  status            String    @default("DRAFT") @db.VarChar(20)
+  priority          String    @default("ELECTIVE") @db.VarChar(12)
+  anesthesiaType    String?   @db.VarChar(12)
+  laterality        String    @default("NONE") @db.VarChar(10)
+  estimatedMinutes  Int
+  requestedDate     DateTime? @db.Date
+  plannedStart      DateTime?
+  plannedEnd        DateTime?
+  actualStart       DateTime?
+  actualEnd         DateTime?
+  diagnosis         String?   @db.NVarChar(300)
+  notes             String?   @db.NVarChar(1000)
+  statusReason      String?   @db.NVarChar(300)
+  version           Int       @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  patient     Patient             @relation(fields: [patientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  procedure   Procedure           @relation(fields: [procedureId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room        Room?               @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  surgeon     User                @relation("SurgeryLead", fields: [surgeonId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  anesthetist User?               @relation("SurgeryAnesthetist", fields: [anesthetistId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy   User                @relation("SurgeryCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  team        SurgeryTeamMember[]
+  equipment   SurgeryEquipment[]
+  checklist   ChecklistItem[]
+  events      SurgeryEvent[]
+
+  @@index([roomId, plannedStart])
+  @@index([surgeonId, plannedStart])
+  @@index([status])
+}
+
+model SurgeryTeamMember {
+  surgeryId String  @db.UniqueIdentifier
+  userId    String  @db.UniqueIdentifier
+  role      String  @db.VarChar(20)
+  surgery   Surgery @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([surgeryId, userId])
+  @@index([userId])
+}
+
+model SurgeryEquipment {
+  surgeryId   String    @db.UniqueIdentifier
+  equipmentId String    @db.UniqueIdentifier
+  surgery     Surgery   @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([surgeryId, equipmentId])
+}
+
+model ChecklistItem {
+  id          String    @id @default(uuid()) @db.UniqueIdentifier
+  surgeryId   String    @db.UniqueIdentifier
+  key         String    @db.VarChar(40)
+  checked     Boolean   @default(false)
+  checkedById String?   @db.UniqueIdentifier
+  checkedAt   DateTime?
+  surgery     Surgery   @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+  checkedBy   User?     @relation(fields: [checkedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([surgeryId, key])
+}
+
+model SurgeryEvent {
+  id         String   @id @default(uuid()) @db.UniqueIdentifier
+  surgeryId  String   @db.UniqueIdentifier
+  actorId    String   @db.UniqueIdentifier
+  type       String   @db.VarChar(20)
+  fromStatus String?  @db.VarChar(20)
+  toStatus   String?  @db.VarChar(20)
+  note       String?  @db.NVarChar(300)
+  createdAt  DateTime @default(now())
+  surgery    Surgery  @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([surgeryId, createdAt])
+}
+
+model Unavailability {
+  id       String   @id @default(uuid()) @db.UniqueIdentifier
+  userId   String   @db.UniqueIdentifier
+  startsAt DateTime
+  endsAt   DateTime
+  kind     String   @db.VarChar(12)
+  note     String?  @db.NVarChar(200)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startsAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.UniqueIdentifier
+  userId    String    @db.UniqueIdentifier
+  type      String    @db.VarChar(40)
+  title     String    @db.NVarChar(160)
+  body      String?   @db.NVarChar(500)
+  link      String?   @db.VarChar(200)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model OutboxMessage {
+  id            String    @id @default(uuid()) @db.UniqueIdentifier
+  kind          String    @db.VarChar(40)
+  payload       String    @db.NVarChar(Max)
+  status        String    @default("PENDING") @db.VarChar(12)
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  lockedUntil   DateTime?
+  lastError     String?   @db.NVarChar(1000)
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
+
+  @@index([status, nextAttemptAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.UniqueIdentifier
+  actorId   String?  @db.UniqueIdentifier
+  action    String   @db.VarChar(40)
+  entity    String   @db.VarChar(30)
+  entityId  String?  @db.VarChar(40)
+  changes   String?  @db.NVarChar(Max)
+  ip        String?  @db.VarChar(45)
+  createdAt DateTime @default(now())
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
