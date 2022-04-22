@@ -1,0 +1,22 @@
+<p style="margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#1f4e79;font-weight:700;">Günlük liste</p>
+<h1 style="margin:0 0 6px;font-size:21px;color:#1b2a3a;">{{dayLabel}}</h1>
+<p style="margin:0 0 20px;font-size:15px;line-height:23px;">Merhaba {{recipientName}}, yarın ekibinde olduğunuz vakalar:</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse;">
+  <tr style="background:#f6f8fa;">
+    <th align="left" style="padding:10px 12px;color:#6b7f84;font-weight:600;font-size:12px;">Saat</th>
+    <th align="left" style="padding:10px 12px;color:#6b7f84;font-weight:600;font-size:12px;">Salon</th>
+    <th align="left" style="padding:10px 12px;color:#6b7f84;font-weight:600;font-size:12px;">İşlem</th>
+    <th align="left" style="padding:10px 12px;color:#6b7f84;font-weight:600;font-size:12px;">Hasta</th>
+  </tr>
+  {{#each rows}}
+  <tr>
+    <td style="padding:12px;border-bottom:1px solid #e3eced;font-weight:700;color:#1f4e79;">{{time}}</td>
+    <td style="padding:12px;border-bottom:1px solid #e3eced;">{{room}}</td>
+    <td style="padding:12px;border-bottom:1px solid #e3eced;">{{procedure}}<br><span style="color:#6b7f84;font-size:12px;">{{surgeon}}</span></td>
+    <td style="padding:12px;border-bottom:1px solid #e3eced;">{{patient}}</td>
+  </tr>
+  {{/each}}
+</table>
+<p style="margin:28px 0 0;">
+  <a href="{{{webOrigin}}}{{{link}}}" style="background:#1f4e79;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:4px;font-weight:600;font-size:15px;display:inline-block;">Takvimde aç</a>
+</p>
