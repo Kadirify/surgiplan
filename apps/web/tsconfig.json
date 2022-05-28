@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ES2021"],
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "jsx": "react-jsx",
+    "isolatedModules": true,
+    "noEmit": true,
+    "useDefineForClassFields": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@surgiplan/shared": ["../../packages/shared/src/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
