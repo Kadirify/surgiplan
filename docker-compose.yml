@@ -1,0 +1,59 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Surgi_Plan_2022!}
+      MSSQL_PID: Developer
+      TZ: UTC
+    ports:
+      - '${MSSQL_PORT:-14330}:1433'
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - '${SMTP_PORT:-1026}:1025'
+      - '${MAILHOG_UI_PORT:-8026}:8025'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: sqlserver://mssql:1433;database=surgiplan;user=sa;password=${MSSQL_SA_PASSWORD:-Surgi_Plan_2022!};trustServerCertificate=true
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret-at-least-32-chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret-at-least-32-chars}
+      WEB_ORIGIN: http://localhost:${WEB_PORT:-8090}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      MAIL_FROM: 'SurgiPlan <no-reply@surgiplan.com>'
+      RUN_MIGRATIONS: 'true'
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+    depends_on:
+      mssql:
+        condition: service_healthy
+    ports:
+      - '${API_PORT:-3000}:3000'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - '${WEB_PORT:-8090}:80'
+
+volumes:
+  mssql-data:

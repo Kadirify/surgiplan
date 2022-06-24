@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7.18.2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.12.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @surgiplan/shared build
+      - run: pnpm --filter @surgiplan/api exec prisma generate
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @surgiplan/web build
+
+  docker:
+    runs-on: ubuntu-22.04
+    needs: check
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - name: Build API image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+      - name: Build web image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
